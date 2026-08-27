@@ -1,0 +1,132 @@
+import Link from 'next/link';
+import { Plus, ArrowRight, Activity, Database, ShieldAlert, Clock } from 'lucide-react';
+import { StatCard } from '@/components/common/StatCard';
+import { Badge } from '@/components/common/Badge';
+import { supabaseAdmin } from '@/lib/supabase';
+
+// This is a Server Component — it fetches directly from Supabase on the server
+async function getDashboardData() {
+  // Try to fetch from Supabase; fall back to mock data if no URL configured
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    return { cases: mockCases, stats: mockStats };
+  }
+
+  const { data: cases } = await supabaseAdmin
+    .from('cases')
+    .select('id, wallet_address, chain, status, crime_category, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const { count: totalCount } = await supabaseAdmin.from('cases').select('*', { count: 'exact', head: true });
+  const { count: runningCount } = await supabaseAdmin.from('cases').select('*', { count: 'exact', head: true }).eq('status', 'running');
+  const { count: highRiskCount } = await supabaseAdmin.from('attributions').select('*', { count: 'exact', head: true }).eq('risk', 'high');
+
+  return {
+    cases: cases || mockCases,
+    stats: {
+      total: totalCount ?? 0,
+      active: runningCount ?? 0,
+      highRisk: highRiskCount ?? 0,
+    }
+  };
+}
+
+// Fallback mock data
+const mockStats = { total: 1248, active: 3, highRisk: 142 };
+const mockCases = [
+  { id: 'CAS-1042', wallet_address: '0x7a2...b9f4', chain: 'ethereum', status: 'completed', crime_category: 'fraud', created_at: new Date().toISOString(), risk: 'high' },
+  { id: 'CAS-1041', wallet_address: 'TVJ...9kM2', chain: 'tron', status: 'completed', crime_category: 'ransomware', created_at: new Date().toISOString(), risk: 'medium' },
+  { id: 'CAS-1040', wallet_address: '0x1c3...e2a1', chain: 'ethereum', status: 'running', crime_category: 'investment_scam', created_at: new Date().toISOString(), risk: null },
+];
+
+function timeAgo(dateStr: string) {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+export default async function Dashboard() {
+  const { cases, stats } = await getDashboardData();
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Investigation Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Overview of recent tracing activities and active cases.</p>
+        </div>
+        <Link
+          href="/trace/new"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
+        >
+          <Plus size={18} />
+          New Trace
+        </Link>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Cases" value={stats.total.toLocaleString()} icon={Database} trend={{ value: 12, isPositive: true }} description="vs last month" />
+        <StatCard title="Active Traces" value={stats.active} icon={Activity} description="Currently running" className="border-primary/20 bg-primary/5" />
+        <StatCard title="High-Risk Attributions" value={stats.highRisk} icon={ShieldAlert} trend={{ value: 4, isPositive: false }} description="Requires review" />
+        <StatCard title="Avg Trace Time" value="14s" icon={Clock} description="From input to report" />
+      </div>
+
+      {/* Recent Cases */}
+      <div className="glass rounded-xl border border-white/5 overflow-hidden">
+        <div className="p-5 border-b border-white/5 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Recent Cases</h2>
+          <Link href="/cases" className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors">
+            View All <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/[0.02] text-xs uppercase tracking-wider text-muted-foreground border-b border-white/5">
+                <th className="px-6 py-4 font-semibold">Case ID</th>
+                <th className="px-6 py-4 font-semibold">Wallet</th>
+                <th className="px-6 py-4 font-semibold">Chain</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold">Category</th>
+                <th className="px-6 py-4 font-semibold">Created</th>
+                <th className="px-6 py-4 font-semibold text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {cases.map((c: any) => (
+                <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
+                  <td className="px-6 py-4 font-medium text-white font-mono text-sm">{typeof c.id === 'string' && c.id.length > 10 ? c.id.substring(0, 8) + '...' : c.id}</td>
+                  <td className="px-6 py-4 font-mono text-sm text-muted-foreground">
+                    {c.wallet_address?.length > 15 ? c.wallet_address.substring(0, 8) + '...' + c.wallet_address.slice(-4) : c.wallet_address}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${c.chain === 'ethereum' ? 'bg-[#627eea]' : 'bg-[#eb0029]'}`}></div>
+                      <span className="capitalize text-sm text-white/80">{c.chain}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <Badge variant={c.status === 'completed' ? 'success' : c.status === 'failed' ? 'destructive' : 'info'}>
+                      {c.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-white/70 capitalize">{c.crime_category?.replace('_', ' ') || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground">{timeAgo(c.created_at)}</td>
+                  <td className="px-6 py-4 text-right">
+                    <Link href={`/cases/${c.id}`} className="inline-flex items-center justify-center p-2 rounded-md hover:bg-white/10 text-muted-foreground hover:text-white transition-colors">
+                      <ArrowRight size={16} />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
