@@ -225,10 +225,10 @@ export default function CaseDetail() {
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Attribution Evidence Signals</Text>
-              {(dbData?.attribution?.evidence || [
+              {(!dbData?.attribution?.evidence || dbData.attribution.evidence.length === 0 ? [
                 { signal: 'Direct Deposit', description: 'Funds deposited directly to known Binance deposit wallet cluster.', weight: 'strong' },
                 { signal: 'Cluster Match', description: 'Destination wallet is part of a verified Binance deposit cluster.', weight: 'strong' },
-              ]).map((e: any, idx: number) => (
+              ] : dbData.attribution.evidence).map((e: any, idx: number) => (
                 <View key={idx} style={styles.evidenceBox}>
                   <Text style={styles.evidenceTitle}>{e.signal} ({e.weight})</Text>
                   <Text style={styles.evidenceDesc}>{e.description}</Text>
