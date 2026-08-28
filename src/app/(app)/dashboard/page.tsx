@@ -1,43 +1,11 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, ArrowRight, Activity, Database, ShieldAlert, Clock } from 'lucide-react';
 import { StatCard } from '@/components/common/StatCard';
 import { Badge } from '@/components/common/Badge';
-import { supabaseAdmin } from '@/lib/supabase';
-
-// This is a Server Component — it fetches directly from Supabase on the server
-async function getDashboardData() {
-  // Try to fetch from Supabase; fall back to mock data if no URL configured
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    return { cases: mockCases, stats: mockStats };
-  }
-
-  const { data: cases } = await supabaseAdmin
-    .from('cases')
-    .select('id, wallet_address, chain, status, crime_category, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const { count: totalCount } = await supabaseAdmin.from('cases').select('*', { count: 'exact', head: true });
-  const { count: runningCount } = await supabaseAdmin.from('cases').select('*', { count: 'exact', head: true }).eq('status', 'running');
-  const { count: highRiskCount } = await supabaseAdmin.from('attributions').select('*', { count: 'exact', head: true }).eq('risk', 'high');
-
-  return {
-    cases: cases || mockCases,
-    stats: {
-      total: totalCount ?? 0,
-      active: runningCount ?? 0,
-      highRisk: highRiskCount ?? 0,
-    }
-  };
-}
-
-// Fallback mock data
-const mockStats = { total: 1248, active: 3, highRisk: 142 };
-const mockCases = [
-  { id: 'CAS-1042', wallet_address: '0x7a2...b9f4', chain: 'ethereum', status: 'completed', crime_category: 'fraud', created_at: new Date().toISOString(), risk: 'high' },
-  { id: 'CAS-1041', wallet_address: 'TVJ...9kM2', chain: 'tron', status: 'completed', crime_category: 'ransomware', created_at: new Date().toISOString(), risk: 'medium' },
-  { id: 'CAS-1040', wallet_address: '0x1c3...e2a1', chain: 'ethereum', status: 'running', crime_category: 'investment_scam', created_at: new Date().toISOString(), risk: null },
-];
+import { getLocalCases, LocalCase } from '@/lib/localStorage';
 
 function timeAgo(dateStr: string) {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -47,8 +15,20 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export default async function Dashboard() {
-  const { cases, stats } = await getDashboardData();
+export default function Dashboard() {
+  const [cases, setCases] = useState<LocalCase[]>([]);
+  const [stats, setStats] = useState({ total: 0, active: 0, highRisk: 0 });
+
+  useEffect(() => {
+    const localCases = getLocalCases();
+    setCases(localCases);
+    
+    // Calculate stats
+    const total = localCases.length;
+    const active = localCases.filter(c => c.status === 'running').length;
+    const highRisk = localCases.filter(c => c.attribution?.risk === 'high').length;
+    setStats({ total, active, highRisk });
+  }, []);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in relative">
@@ -100,7 +80,7 @@ export default async function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {cases.map((c: any) => (
+              {cases.slice(0, 5).map((c) => (
                 <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="px-6 py-4 font-medium text-white font-mono text-sm">{typeof c.id === 'string' && c.id.length > 10 ? c.id.substring(0, 8) + '...' : c.id}</td>
                   <td className="px-6 py-4 font-mono text-sm text-muted-foreground">
@@ -126,6 +106,13 @@ export default async function Dashboard() {
                   </td>
                 </tr>
               ))}
+              {cases.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-xs text-muted-foreground">
+                    No active cases. <Link href="/trace/new" className="text-primary hover:underline">Start a new trace</Link>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

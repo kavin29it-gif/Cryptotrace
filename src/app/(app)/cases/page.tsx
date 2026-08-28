@@ -1,42 +1,11 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, ArrowRight, Download } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
-import { supabaseAdmin } from '@/lib/supabase';
 import ExportCsvButton from '@/components/common/ExportCsvButton';
-
-async function getCases() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    return mockCases;
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('cases')
-    .select(`
-      id,
-      wallet_address,
-      chain,
-      status,
-      crime_category,
-      created_at,
-      attributions (risk, confidence)
-    `)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (error) {
-    console.error('Cases fetch error:', error);
-    return mockCases;
-  }
-
-  return data || mockCases;
-}
-
-// Fallback mock data
-const mockCases = [
-  { id: 'CAS-1042', wallet_address: '0x7a2...b9f4', chain: 'ethereum', status: 'completed', crime_category: 'fraud', created_at: new Date().toISOString(), attributions: [{ risk: 'high', confidence: 92 }] },
-  { id: 'CAS-1041', wallet_address: 'TVJ...9kM2', chain: 'tron', status: 'completed', crime_category: 'ransomware', created_at: new Date().toISOString(), attributions: [{ risk: 'medium', confidence: 55 }] },
-  { id: 'CAS-1040', wallet_address: '0x1c3...e2a1', chain: 'ethereum', status: 'running', crime_category: 'investment_scam', created_at: new Date().toISOString(), attributions: [] },
-];
+import { getLocalCases, LocalCase } from '@/lib/localStorage';
 
 function timeAgo(dateStr: string) {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -46,8 +15,12 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export default async function CasesList() {
-  const cases = await getCases();
+export default function CasesList() {
+  const [cases, setCases] = useState<LocalCase[]>([]);
+
+  useEffect(() => {
+    setCases(getLocalCases());
+  }, []);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
@@ -84,8 +57,8 @@ export default async function CasesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {cases.map((c: any) => {
-                const topAttribution = c.attributions?.[0];
+              {cases.map((c: LocalCase) => {
+                const topAttribution = c.attribution;
                 return (
                   <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-6 py-4 font-medium text-white font-mono text-sm">
@@ -118,9 +91,9 @@ export default async function CasesList() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/cases/${c.id}`}
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/10 border border-transparent hover:border-white/10"
+                        className="inline-flex items-center justify-center p-2 rounded-md hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
                       >
-                        View <ArrowRight size={14} />
+                        <ArrowRight size={16} />
                       </Link>
                     </td>
                   </tr>
@@ -128,16 +101,13 @@ export default async function CasesList() {
               })}
               {cases.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-16 text-center text-muted-foreground">
-                    No cases yet. <Link href="/trace/new" className="text-primary hover:underline">Start your first trace →</Link>
+                  <td colSpan={8} className="px-6 py-12 text-center text-xs text-muted-foreground">
+                    No cases in this directory. <Link href="/trace/new" className="text-primary hover:underline">Start a new trace</Link>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
-        <div className="p-4 border-t border-white/5 flex items-center justify-between text-sm text-muted-foreground">
-          <div>Showing {cases.length} entries</div>
         </div>
       </div>
     </div>

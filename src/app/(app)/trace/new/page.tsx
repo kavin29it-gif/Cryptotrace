@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, ChevronRight, Activity, Database, GitMerge, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
+import { saveLocalCase } from '@/lib/localStorage';
 
 const steps = [
   { id: 'input', label: 'Input validation', icon: Shield },
@@ -51,6 +52,26 @@ export default function NewTrace() {
       
       const data = await res.json();
       clearInterval(interval);
+      
+      if (data.success && data.result) {
+        saveLocalCase({
+          id: caseId,
+          wallet_address: address,
+          chain: chain,
+          status: 'completed',
+          crime_category: category,
+          created_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          attribution: {
+            vasp_name: data.result.attribution?.vasp_name || 'Unknown VASP',
+            vasp_address: data.result.attribution?.vasp_address || '',
+            confidence: data.result.score?.confidence || 50,
+            risk: data.result.score?.risk || 'low',
+            evidence: data.result.score?.evidence || [],
+            path: data.result.result?.path || []
+          }
+        });
+      }
       
       // Make sure UI shows all steps completed
       setCurrentStep(steps.length);

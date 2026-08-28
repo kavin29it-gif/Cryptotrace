@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Network, ShieldCheck, FileOutput, AlertTriangle, CheckCircle, Copy, Download, Share2, Sparkles, Send, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
+import { getLocalCaseById } from '@/lib/localStorage';
 
 const FundFlowGraph = dynamic(() => import('@/components/graph/FundFlowGraph'), {
   ssr: false,
@@ -90,12 +91,31 @@ export default function CaseDetail() {
   };
 
   useEffect(() => {
-    async function loadCaseData() {
+    function loadCaseData() {
       try {
-        const res = await fetch(`/api/cases/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDbData(data);
+        const localCase = getLocalCaseById(id as string);
+        if (localCase) {
+          setDbData({
+            case: {
+              id: localCase.id,
+              wallet_address: localCase.wallet_address,
+              chain: localCase.chain,
+              status: localCase.status,
+              crime_category: localCase.crime_category,
+              created_at: localCase.created_at,
+              completed_at: localCase.completed_at
+            },
+            attribution: localCase.attribution ? {
+              case_id: localCase.id,
+              source_wallet: localCase.wallet_address,
+              vasp_address: localCase.attribution.vasp_address,
+              vasp_name: localCase.attribution.vasp_name,
+              confidence: localCase.attribution.confidence,
+              risk: localCase.attribution.risk,
+              evidence: localCase.attribution.evidence,
+              path: localCase.attribution.path
+            } : null
+          });
         }
       } catch (err) {
         console.error("Failed to load case data:", err);
