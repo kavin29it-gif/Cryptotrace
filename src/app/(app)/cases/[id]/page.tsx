@@ -397,12 +397,12 @@ export default function CaseDetail() {
                 </div>
                 <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Evidence Signals</p>
-                  {(dbData?.attribution?.evidence || [
+                  {(!dbData?.attribution?.evidence || dbData.attribution.evidence.length === 0 ? [
                     { signal: 'Direct Deposit', description: 'Funds deposited directly to known Binance deposit wallet cluster.', weight: 'strong' },
                     { signal: 'Cluster Match', description: 'Destination wallet is part of a verified Binance deposit cluster — strongly supports attribution.', weight: 'strong' },
                     { signal: 'Peeling Chain Detected', description: 'Rapid sequential single-output transactions detected — common obfuscation pattern.', weight: 'moderate' },
                     { signal: 'Round Amount Transactions', description: 'Multiple round-number (e.g. 10 ETH, 5 ETH) transfers detected — consistent with structured layering.', weight: 'moderate' },
-                  ]).map((e: any, i: number) => (
+                  ] : dbData.attribution.evidence).map((e: any, i: number) => (
                     <div key={i} className="flex gap-3 items-start">
                       <span className="mt-0.5 shrink-0">
                         {e.weight === 'penalty' ? <AlertTriangle size={14} className="text-warning" /> : <CheckCircle size={14} className="text-success" />}
@@ -443,7 +443,26 @@ export default function CaseDetail() {
                     <Badge variant="outline" className="text-xs">Secondary Candidate</Badge>
                   </div>
                 </div>
+                <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Evidence Signals</p>
+                  {[
+                    { signal: 'Peeling Chain Detected', description: 'Rapid sequential single-output transactions detected — common obfuscation pattern.', weight: 'moderate' },
+                    { signal: 'Hop Distance', description: 'Destination is 3+ hops away from the source wallet.', weight: 'moderate' }
+                  ].map((e: any, i: number) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="mt-0.5 shrink-0">
+                        {e.weight === 'penalty' ? <AlertTriangle size={14} className="text-warning" /> : <CheckCircle size={14} className="text-success" />}
+                      </span>
+                      <div>
+                        <span className="text-sm text-white font-medium">{e.signal}</span>
+                        <Badge variant={e.weight === 'strong' ? 'success' : e.weight === 'penalty' ? 'destructive' : 'warning'} className="ml-2 capitalize">{e.weight}</Badge>
+                        <p className="text-xs text-muted-foreground mt-0.5">{e.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
             </div>
           </div>
         )}
