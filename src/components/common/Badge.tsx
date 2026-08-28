@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'destructive' | 'outline' | 'info';
+type BadgeVariant = 'default' | 'success' | 'warning' | 'destructive' | 'outline' | 'info' | 'accent' | 'neutral' | 'danger';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -10,17 +10,20 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {
   const variants = {
-    default: 'bg-primary/20 text-primary border-primary/30',
-    success: 'bg-success/20 text-success border-success/30',
-    warning: 'bg-warning/20 text-warning border-warning/30',
-    destructive: 'bg-destructive/20 text-destructive border-destructive/30',
-    outline: 'bg-transparent border-white/20 text-muted-foreground',
-    info: 'bg-accent/20 text-blue-400 border-accent/30',
+    default: 'badge-neutral',
+    success: 'badge-success',
+    warning: 'badge-warning',
+    destructive: 'badge-danger',
+    danger: 'badge-danger',
+    accent: 'badge-accent',
+    neutral: 'badge-neutral',
+    outline: 'badge-neutral',
+    info: 'badge-accent',
   };
 
   return (
     <span className={clsx(
-      "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
+      "badge",
       variants[variant],
       className
     )}>

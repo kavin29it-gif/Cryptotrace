@@ -7,7 +7,7 @@ const COLOR_MAP = {
   suspect: '#ef4444',     // Red
   intermediate: '#9ca3af', // Gray
   mixer: '#f59e0b',       // Amber
-  vasp: '#3b82f6',        // Blue
+  vasp: '#B497D6',        // Dusty Purple
 };
 
 export default function FundFlowGraph() {

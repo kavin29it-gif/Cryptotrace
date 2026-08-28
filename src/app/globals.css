@@ -3,47 +3,50 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-background: #09090b; /* Zinc 950 */
-  --color-foreground: #fafafa; /* Zinc 50 */
+  --color-background: #0A0E14; /* Deep navy/near-black */
+  --color-foreground: #F5F7FA; /* Premium off-white text */
   
-  --color-card: #18181b; /* Zinc 900 */
-  --color-card-foreground: #fafafa;
+  --color-card: #10151D; /* Dark glass card backing */
+  --color-card-foreground: #F5F7FA;
   
-  --color-popover: #18181b;
-  --color-popover-foreground: #fafafa;
+  --color-popover: #10151D;
+  --color-popover-foreground: #F5F7FA;
   
-  --color-primary: #3b82f6; /* Blue 500 - neon feel */
-  --color-primary-foreground: #ffffff;
+  --color-primary: #07E96D; /* Emerald green primary key accent */
+  --color-primary-foreground: #0A0E14;
   
-  --color-secondary: #27272a; /* Zinc 800 */
-  --color-secondary-foreground: #fafafa;
+  --color-secondary: #141B25; /* Raised surface color */
+  --color-secondary-foreground: #F5F7FA;
   
-  --color-muted: #27272a;
-  --color-muted-foreground: #a1a1aa; /* Zinc 400 */
+  --color-muted: #141B25;
+  --color-muted-foreground: #9CA3AF; /* Muted gray text */
   
-  --color-accent: #1e40af; /* Blue 800 */
-  --color-accent-foreground: #fafafa;
+  --color-accent: #07A5E9; /* Teal/Cyan highlight */
+  --color-accent-foreground: #0A0E14;
   
-  --color-destructive: #ef4444; /* Red 500 */
-  --color-destructive-foreground: #fafafa;
+  --color-destructive: #F87171; /* Red 400 */
+  --color-destructive-foreground: #ffffff;
   
-  --color-success: #10b981; /* Emerald 500 */
-  --color-warning: #f59e0b; /* Amber 500 */
-
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #3b82f6;
+  --color-success: #07E96D; /* Green 400 */
+  --color-warning: #E8957C; /* Coral 400 */
+ 
+  --color-border: rgba(255, 255, 255, 0.08); /* Faint borders */
+  --color-input: rgba(255, 255, 255, 0.08);
+  --color-ring: #07E96D;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+
+  --font-serif: var(--font-serif), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    --background: #09090b;
-    --foreground: #fafafa;
+    --background: #0A0E14;
+    --foreground: #F5F7FA;
   }
 }
 
@@ -54,15 +57,59 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-sans);
   }
   
+  h1, h2, h3, .font-serif-heading {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
+  }
+
   /* Glassmorphism utilities */
   .glass {
-    @apply bg-card/60 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-card/65 backdrop-blur-xl border border-white/8 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
   }
   .glass-panel {
-    @apply bg-card/40 backdrop-blur-lg border border-white/5;
+    @apply bg-card/50 backdrop-blur-2xl border border-white/5;
   }
+
+  /* Custom inputs style */
+  input[type="text"], select, textarea {
+    @apply focus:ring-1 focus:ring-primary focus:border-primary/50 transition-all duration-200;
+  }
+
+  /* Hide scrollbars but keep functionality */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Aurora Gradient */
+.aurora-gradient-text {
+  background: linear-gradient(135deg, #07E96D 0%, #07A5E9 50%, #E8957C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.aurora-bg-gradient {
+  background: linear-gradient(135deg, #07E96D 0%, #07A5E9 50%, #E8957C 100%);
+}
+
+.aurora-glow-card {
+  position: relative;
+}
+.aurora-glow-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, rgba(7, 233, 109, 0.15) 0%, rgba(7, 165, 233, 0.15) 50%, rgba(232, 149, 124, 0.15) 100%);
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* Animations */
@@ -72,8 +119,8 @@
 }
 
 @keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(7, 233, 109, 0.3)); }
+  50% { opacity: 0.6; filter: drop-shadow(0 0 1px rgba(7, 233, 109, 0.1)); }
 }
 
 .animate-fade-in {
@@ -81,5 +128,35 @@
 }
 
 .animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-slow 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+.badge {
+  @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider;
+}
+.badge-success {
+  color: #07E96D;
+  border-color: rgba(7, 233, 109, 0.35);
+  background: rgba(7, 233, 109, 0.10);
+}
+.badge-warning {
+  color: #E8957C;
+  border-color: rgba(232, 149, 124, 0.35);
+  background: rgba(232, 149, 124, 0.10);
+}
+.badge-danger {
+  color: #F87171;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.10);
+}
+.badge-accent {
+  color: #07A5E9;
+  border-color: rgba(7, 165, 233, 0.35);
+  background: rgba(7, 165, 233, 0.10);
+}
+.badge-neutral {
+  color: #9CA3AF;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+

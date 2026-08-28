@@ -60,9 +60,9 @@ export default async function CasesList() {
           <ExportCsvButton data={cases} />
           <Link
             href="/trace/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-95"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 aurora-bg-gradient text-[#07090c] font-semibold rounded-full shadow-[0_4px_15px_rgba(74,222,128,0.2)] hover:shadow-[0_4px_25px_rgba(74,222,128,0.3)] transition-all duration-200 active:scale-95 text-xs"
           >
-            <Plus size={18} />
+            <Plus size={14} strokeWidth={2.5} />
             New Trace
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default async function CasesList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${c.chain === 'ethereum' ? 'bg-[#627eea]' : 'bg-[#eb0029]'}`}></div>
+                        <div className={`w-2 h-2 rounded-full ${c.chain === 'ethereum' ? 'bg-accent' : 'bg-[#eb0029]'}`}></div>
                         <span className="capitalize text-sm text-white/80">{c.chain}</span>
                       </div>
                     </td>
