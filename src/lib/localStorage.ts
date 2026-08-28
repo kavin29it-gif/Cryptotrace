@@ -21,64 +21,8 @@ export interface LocalCase {
 const STORAGE_KEY = 'cryptotrace_cases';
 
 // Default mock data to populate if storage is completely empty
-const defaultMockCases: LocalCase[] = [
-  {
-    id: 'CAS-1297',
-    wallet_address: '0x0d0431...eD00',
-    chain: 'ethereum',
-    status: 'completed',
-    crime_category: 'fraud',
-    created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    completed_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    attribution: {
-      vasp_name: 'Binance',
-      vasp_address: '0x28C6c06298d514Db089934071355E5743bf21d60',
-      confidence: 92,
-      risk: 'high',
-      evidence: [
-        { signal: 'Direct Deposit', description: 'Funds deposited directly to known Binance deposit wallet cluster.', weight: 'strong' },
-        { signal: 'Cluster Match', description: 'Destination wallet is part of a verified Binance deposit cluster.', weight: 'strong' }
-      ],
-      path: []
-    }
-  },
-  {
-    id: 'CAS-1317',
-    wallet_address: 'TYDUutYN...q9QZ',
-    chain: 'tron',
-    status: 'completed',
-    crime_category: 'fraud',
-    created_at: new Date(Date.now() - 9 * 3600000).toISOString(),
-    completed_at: new Date(Date.now() - 9 * 3600000).toISOString(),
-    attribution: {
-      vasp_name: 'Kraken',
-      vasp_address: '0x772...8888',
-      confidence: 45,
-      risk: 'medium',
-      evidence: [
-        { signal: 'Peeling Chain Detected', description: 'Rapid sequential single-output transactions detected.', weight: 'moderate' }
-      ],
-      path: []
-    }
-  },
-  {
-    id: 'CAS-2347',
-    wallet_address: '0x53b693...Bfc1',
-    chain: 'ethereum',
-    status: 'completed',
-    crime_category: 'fraud',
-    created_at: new Date(Date.now() - 9 * 3600000).toISOString(),
-    completed_at: new Date(Date.now() - 9 * 3600000).toISOString(),
-    attribution: {
-      vasp_name: 'Binance',
-      vasp_address: '0x28C6c06298d514Db089934071355E5743bf21d60',
-      confidence: 90,
-      risk: 'high',
-      evidence: [],
-      path: []
-    }
-  }
-];
+const defaultMockCases: LocalCase[] = [];
+
 
 export function getLocalCases(): LocalCase[] {
   if (typeof window === 'undefined') return [];
