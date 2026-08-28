@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Network, ShieldCheck, FileOutput, AlertTriangle, CheckCircle, Copy, Download, Share2 } from 'lucide-react';
+import { ArrowLeft, Network, ShieldCheck, FileOutput, AlertTriangle, CheckCircle, Copy, Download, Share2, Sparkles, Send, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
 
 const FundFlowGraph = dynamic(() => import('@/components/graph/FundFlowGraph'), {
@@ -21,12 +21,73 @@ const FundFlowGraph = dynamic(() => import('@/components/graph/FundFlowGraph'), 
 
 export default function CaseDetail() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState<'graph' | 'evidence' | 'report'>('graph');
+  const [activeTab, setActiveTab] = useState<'graph' | 'evidence' | 'report' | 'ai'>('graph');
   const [sahyogAction, setSahyogAction] = useState<'disclosure' | 'freeze'>('disclosure');
   const [sahyogStatus, setSahyogStatus] = useState<{ loading: boolean; result: string | null }>({ loading: false, result: null });
   
   const [dbData, setDbData] = useState<{ case: any; attribution: any } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // AI Copilot States
+  const [aiResponse, setAiResponse] = useState<any | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  
+  // Ask AI Chat States
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; sources?: any[] }>>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const generateAIAnalysis = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch(`/api/ai/cases/${id}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        throw new Error('AI analysis is temporarily unavailable.');
+      }
+      const data = await res.json();
+      setAiResponse(data);
+    } catch (err: any) {
+      setAiError(err.message || 'AI analysis is temporarily unavailable.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setChatLoading(true);
+
+    try {
+      const res = await fetch(`/api/ai/cases/${id}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: userMsg })
+      });
+      if (!res.ok) {
+        throw new Error('Could not get answer from AI.');
+      }
+      const data = await res.json();
+      setChatMessages(prev => [...prev, {
+        sender: 'ai',
+        text: data.summary || data.risk_explanation || 'Answer generated.',
+        sources: data.sources
+      }]);
+    } catch (err: any) {
+      setChatMessages(prev => [...prev, { sender: 'ai', text: err.message || 'AI is temporarily offline.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function loadCaseData() {
@@ -252,6 +313,14 @@ export default function CaseDetail() {
           Report &amp; Actions
           {activeTab === 'report' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full shadow-[0_-2px_10px_rgba(59,130,246,0.5)]"></span>}
         </button>
+        <button
+          onClick={() => setActiveTab('ai')}
+          className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'ai' ? 'text-primary' : 'text-muted-foreground hover:text-white'}`}
+        >
+          <Sparkles size={16} />
+          AI Analysis
+          {activeTab === 'ai' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full shadow-[0_-2px_10px_rgba(59,130,246,0.5)]"></span>}
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -425,6 +494,255 @@ export default function CaseDetail() {
                 )}
                 <p className="text-xs text-center text-muted-foreground">Integrated with SAHYOG Portal API</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI ANALYSIS TAB */}
+        {activeTab === 'ai' && (
+          <div className="p-6 h-full overflow-y-auto space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-4 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Sparkles className="text-primary animate-pulse" size={20} />
+                  🤖 AI Investigation Copilot
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Grounded cryptocurrency AML evidence interpreter and case explainer.
+                </p>
+              </div>
+              <button
+                onClick={generateAIAnalysis}
+                disabled={aiLoading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-medium rounded-lg shadow-lg shadow-primary/20 transition-all text-sm shrink-0"
+              >
+                {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                {aiResponse ? 'Regenerate Analysis' : 'Generate AI Analysis'}
+              </button>
+            </div>
+
+            {/* Side-by-Side: Offical Data vs AI Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Left Column: Official System Data (Source of Truth) */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="glass p-4 rounded-xl border border-white/10 space-y-4">
+                  <div className="border-b border-white/5 pb-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Official System Data</p>
+                    <p className="text-xs text-muted-foreground/60">Source: Deterministic Risk Engine</p>
+                  </div>
+                  
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase block mb-1">Risk Score</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-extrabold text-white">{dbData?.attribution?.confidence || 92}</span>
+                      <span className="text-sm text-muted-foreground">/ 100</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase block mb-1">Risk Level</span>
+                    <Badge variant={dbData?.attribution?.risk === 'high' ? 'destructive' : dbData?.attribution?.risk === 'medium' ? 'warning' : 'success'} className="px-3 py-1 text-sm font-semibold">
+                      {(dbData?.attribution?.risk || 'HIGH').toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase block mb-1 font-mono">Suspect Wallet</span>
+                    <span className="text-xs text-white font-mono break-all">{dbData?.case?.wallet_address || caseData.wallet}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase block mb-1">Target VASP</span>
+                    <span className="text-sm text-white font-medium block">{dbData?.attribution?.vasp_name || 'Binance'}</span>
+                    <span className="text-xs text-muted-foreground font-mono break-all">{dbData?.attribution?.vasp_address || '0x28C...1d60'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: AI Insights & Outputs */}
+              <div className="lg:col-span-8 space-y-6">
+                {aiError && (
+                  <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                    {aiError}
+                  </div>
+                )}
+
+                {!aiResponse && !aiLoading && (
+                  <div className="glass p-8 rounded-xl border border-white/5 text-center space-y-4">
+                    <Sparkles size={40} className="mx-auto text-muted-foreground/30 animate-pulse-slow" />
+                    <div className="max-w-md mx-auto space-y-2">
+                      <h4 className="font-semibold text-white">Generate Case Explanation</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Click the button above to run an AI analysis grounded in transaction evidence and FATF AML typologies.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aiLoading && (
+                  <div className="glass p-12 rounded-xl border border-white/5 flex flex-col items-center justify-center space-y-4">
+                    <Loader2 size={32} className="text-primary animate-spin" />
+                    <p className="text-sm text-muted-foreground">Generating AI insights & running RAG retrieval...</p>
+                  </div>
+                )}
+
+                {aiResponse && (
+                  <div className="space-y-6 animate-fade-in">
+                    
+                    {/* Summary */}
+                    <div className="glass p-5 rounded-xl border border-white/10 space-y-2">
+                      <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">AI Investigation Summary</h4>
+                      <p className="text-sm text-white/90 leading-relaxed">{aiResponse.summary}</p>
+                    </div>
+
+                    {/* Why High Risk */}
+                    <div className="glass p-5 rounded-xl border border-white/10 space-y-2">
+                      <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Why is this case {(dbData?.attribution?.risk || 'HIGH').toUpperCase()} Risk?</h4>
+                      <p className="text-sm text-white/90 leading-relaxed">{aiResponse.risk_explanation}</p>
+                    </div>
+
+                    {/* Fund Flow Explanation */}
+                    <div className="glass p-5 rounded-xl border border-white/10 space-y-2">
+                      <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Fund Flow Explanation</h4>
+                      <p className="text-sm text-white/90 leading-relaxed">{aiResponse.fund_flow_explanation}</p>
+                    </div>
+
+                    {/* Indicators & Typologies */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="glass p-5 rounded-xl border border-white/10 space-y-3">
+                        <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Key Risk Indicators</h4>
+                        <ul className="space-y-2">
+                          {aiResponse.key_indicators?.map((ind: string, idx: number) => (
+                            <li key={idx} className="flex gap-2 items-start text-xs text-white/90">
+                              <span className="text-success shrink-0">✓</span>
+                              <span>{ind}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="glass p-5 rounded-xl border border-white/10 space-y-3">
+                        <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">AML Typologies</h4>
+                        <ul className="space-y-2">
+                          {aiResponse.aml_typologies?.map((typ: string, idx: number) => (
+                            <li key={idx} className="flex gap-2 items-start text-xs text-white/90">
+                              <span className="text-primary shrink-0">•</span>
+                              <span>{typ}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Recommended Next Steps */}
+                    <div className="glass p-5 rounded-xl border border-white/10 space-y-3">
+                      <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Recommended Next Steps</h4>
+                      <ul className="space-y-2">
+                        {aiResponse.recommended_next_steps?.map((step: string, idx: number) => (
+                          <li key={idx} className="flex gap-2 items-start text-xs text-white/90">
+                            <span className="text-warning shrink-0">•</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Knowledge Sources */}
+                    {aiResponse.sources && aiResponse.sources.length > 0 && (
+                      <div className="glass p-5 rounded-xl border border-white/10 space-y-3">
+                        <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Retrieved Knowledge Sources (RAG)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {aiResponse.sources.map((src: any, idx: number) => (
+                            <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-xs space-y-1">
+                              <span className="font-semibold text-white block truncate">{src.title}</span>
+                              <span className="text-muted-foreground block">{src.source}</span>
+                              {src.topic && <span className="inline-block px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded mt-1 font-mono text-[10px]">{src.topic}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Confidence */}
+                    <div className="glass p-5 rounded-xl border border-white/10 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">AI Reasoning Confidence</h4>
+                        <p className="text-xs text-muted-foreground">Probability of correct evidence-knowledge alignment.</p>
+                      </div>
+                      <span className="text-2xl font-bold text-success">{aiResponse.confidence || 90}%</span>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chat Box / Ask AI */}
+            <div className="glass rounded-xl border border-white/10 overflow-hidden flex flex-col h-[400px] mt-6">
+              <div className="p-4 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-white text-sm">Ask Investigation Copilot</h4>
+                  <p className="text-xs text-muted-foreground">Ask questions grounded in case context and AML regulations.</p>
+                </div>
+                <Badge variant="outline" className="text-xs">Grounded Q&amp;A</Badge>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-2 p-6">
+                    <Sparkles size={24} className="text-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground max-w-xs">
+                      Ask a question like "Why is this case high risk?" or "Explain the fund flow."
+                    </p>
+                  </div>
+                )}
+
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm space-y-2 ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary/40 text-white border border-white/10'}`}>
+                      <p className="leading-relaxed">{msg.text}</p>
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="border-t border-white/10 pt-1.5 mt-1.5 space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold">Sources:</p>
+                          {msg.sources.map((s: any, idx: number) => (
+                            <span key={idx} className="block text-[10px] text-muted-foreground/80">• {s.title} ({s.source})</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-secondary/40 border border-white/10 p-3 rounded-lg flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">Copilot is thinking...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Input */}
+              <form onSubmit={handleSendChat} className="p-3 border-t border-white/5 bg-black/20 flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask a question about the case..."
+                  disabled={chatLoading}
+                  className="flex-1 bg-secondary/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary placeholder-muted-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="p-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors"
+                >
+                  <Send size={16} />
+                </button>
+              </form>
             </div>
           </div>
         )}
